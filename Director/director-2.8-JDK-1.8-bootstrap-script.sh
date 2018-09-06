@@ -19,11 +19,3 @@ ln -nfs /usr/java/latest /usr/java/default
 # Add JAVA_HOME environment
 sh -c "echo export JAVA_HOME=/usr/java/jdk1.8.0_121-cloudera >> /etc/environment"
 sh -c "echo export JAVA_HOME=/usr/java/jdk1.8.0_121-cloudera >> /root/.bash_profile"
-
-# Add the Cloudera Director repository to the package manager
-curl -o /etc/yum.repos.d/cloudera-director.repo https://archive.cloudera.com/director/redhat/7/x86_64/director/cloudera-director.repo
-sed -i.bak 's/director\/2/director\/2.8.0/g' /etc/yum.repos.d/cloudera-director.repo
-
-# Install Cloudera Director server and client
-yum -y install cloudera-director-server cloudera-director-client
-service cloudera-director-server start
