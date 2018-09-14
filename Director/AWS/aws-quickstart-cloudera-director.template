@@ -1,0 +1,144 @@
+{
+    "Parameters" : {
+        "Username" : {
+            "Type" : "String",
+            "Default": "aheib",
+            "Description" : "Username"
+        },
+        "KeyPair" : {
+            "Type" : "AWS::EC2::KeyPair::KeyName",
+            "Description": "The keypair used for Director deployment"
+        }
+    },
+    "Resources": {
+        "VPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": "10.0.0.0/16",
+                "EnableDnsSupport" : True,
+                "EnableDnsHostnames" : True,
+                "Tags": [
+                    { "Key" : "Name", "Value" : "VPC"},
+                    { "Key" : "owner", "Value" : { "Ref": "Username" } }
+                ]
+            }
+        },
+        "InternetGateway": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {
+                "Tags" : [
+                    { "Key" : "Name", "Value" : "InternetGateway" },
+                    { "Key" : "owner", "Value" : { "Ref": "Username" } }
+                ]
+            }
+        },
+        "VPCGatewayAttachment": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": { "Ref": "VPC" },
+                "InternetGatewayId": { "Ref": "InternetGateway" }
+            }
+        },
+        "RouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": { "Ref": "VPC" }
+            }
+        },
+        "InternetRoute": {
+            "Type": "AWS::EC2::Route",
+            "DependsOn": "InternetGateway",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": { "Ref": "InternetGateway" },
+                "RouteTableId": { "Ref": "RouteTable" }
+            }
+        },
+        "Subnet": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": { "Ref": "VPC" },
+                "AvailabilityZone" : "eu-west-1a",
+                "CidrBlock": "10.0.0.0/24",
+                "Tags" : [
+                    { "Key" : "Name", "Value" : "Subnet" },
+                    { "Key" : "owner", "Value" : { "Ref": "Username" } }
+                ]
+            }
+        },
+        "SubnetRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": { "Ref": "RouteTable" },
+                "SubnetId": { "Ref": "Subnet" }
+            }
+        },
+        "SecurityGroup": {
+            "Type" : "AWS::EC2::SecurityGroup",
+            "Properties" : {
+                "GroupName" : "SecurityGroup",
+                "GroupDescription" : "Cloudera Port + SSH",
+                "VpcId" : {  "Ref": "VPC" },
+                "SecurityGroupEgress" : [ 
+                    { "IpProtocol" : "tcp", "FromPort" : 0, "ToPort" : 65535, "CidrIp" : "0.0.0.0/0" },
+                    { "IpProtocol" : "udp", "FromPort" : 0, "ToPort" : 65535, "CidrIp" : "0.0.0.0/0" }
+                ],
+                "SecurityGroupIngress" : [ 
+                    { "IpProtocol" : "tcp", "FromPort" : 22, "ToPort" : 22, "CidrIp" : "0.0.0.0/0" },
+                    { "IpProtocol" : "tcp", "FromPort" : 7180, "ToPort" : 7189, "CidrIp" : "0.0.0.0/0" }
+                ],
+                "Tags" : [
+                    { "Key" : "Name", "Value" : "SecurityGroup" },
+                    { "Key" : "owner", "Value" : { "Ref": "Username" } }
+                ]
+            }
+        },
+        "Director": {
+            "Type" : "AWS::EC2::Instance",
+            "DependsOn" : "VPCGatewayAttachment",
+            "Properties" : {
+                "ImageId": "ami-4c457735",
+                "InstanceType": "t2.medium",
+                "KeyName": { "Ref": "KeyPair" },
+                "NetworkInterfaces": [{
+                    "AssociatePublicIpAddress" : True,
+                    "DeleteOnTermination" : True,
+                    "DeviceIndex" : "0",
+                    "GroupSet" : [ { "Ref" : "SecurityGroup" } ],
+                    "SubnetId" : { "Ref" : "Subnet" }
+                }],
+                "Tags": [
+                    { "Key" : "Name", "Value" : "Director"},
+                    { "Key" : "owner", "Value" : { "Ref": "Username" } }
+                ],
+                "UserData" : { 
+                    "Fn::Base64" : { 
+                        "Fn::Join" : [ 
+                            "", [
+                                "#!/bin/bash \n",
+                                "yum install -y git screen \n",
+                                "git clone https://github.com/heibalvin/Cloudera /root/Cloudera \n",
+                                "chmod u+x /root/Cloudera/Director/director-centos-7-installation-script.sh \n",
+                                "./root/Cloudera/Director/director-centos-7-installation-script.sh \n"
+                            ]
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "Outputs" : {
+        "Subnet" : {
+            "Description": "The Public Subnet ID",  
+            "Value" : { "Ref": "Subnet" }
+        },
+        "SecurityGroup" : {
+            "Description": "The Public Security Group ID",
+            "Value" : { "Ref": "SecurityGroup" }
+        },
+        "Director" : {
+            "Description": "The URL to connect to Cloudera Director",
+            "Value" : { "Fn::Sub": [ "http://${hostname}:7189/", { "hostname": { "Fn::GetAtt": ["Director", "PublicDnsName"] } } ]}
+        }
+    }
+}

@@ -1,0 +1,103 @@
+{
+    "Parameters" : {
+        "Username" : {
+            "Type" : "String",
+            "Default": "aheib",
+            "Description" : "Username"
+        }
+    },
+    "Resources": {
+        "VPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": "10.0.0.0/16",
+                "EnableDnsSupport" : True,
+                "EnableDnsHostnames" : True,
+                "Tags": [
+                    { "Key" : "Name", "Value" : "VPC"},
+                    { "Key" : "owner", "Value" : { "Ref": "Username" } }
+                ]
+            }
+        },
+        "InternetGateway": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {
+                "Tags" : [
+                    { "Key" : "Name", "Value" : "InternetGateway" },
+                    { "Key" : "owner", "Value" : { "Ref": "Username" } }
+                ]
+            }
+        },
+        "VPCGatewayAttachment": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": { "Ref": "VPC" },
+                "InternetGatewayId": { "Ref": "InternetGateway" }
+            }
+        },
+        "RouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": { "Ref": "VPC" }
+            }
+        },
+        "InternetRoute": {
+            "Type": "AWS::EC2::Route",
+            "DependsOn": "InternetGateway",
+            "Properties": {
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": { "Ref": "InternetGateway" },
+                "RouteTableId": { "Ref": "RouteTable" }
+            }
+        },
+        "Subnet": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": { "Ref": "VPC" },
+                "AvailabilityZone" : "eu-west-1a",
+                "CidrBlock": "10.0.0.0/24",
+                "Tags" : [
+                    { "Key" : "Name", "Value" : "Subnet" },
+                    { "Key" : "owner", "Value" : { "Ref": "Username" } }
+                ]
+            }
+        },
+        "SubnetRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "RouteTableId": { "Ref": "RouteTable" },
+                "SubnetId": { "Ref": "Subnet" }
+            }
+        },
+        "SecurityGroup": {
+            "Type" : "AWS::EC2::SecurityGroup",
+            "Properties" : {
+                "GroupName" : "SecurityGroup",
+                "GroupDescription" : "Cloudera Port + SSH",
+                "VpcId" : {  "Ref": "VPC" },
+                "SecurityGroupEgress" : [ 
+                    { "IpProtocol" : "tcp", "FromPort" : 0, "ToPort" : 65535, "CidrIp" : "0.0.0.0/0" },
+                    { "IpProtocol" : "udp", "FromPort" : 0, "ToPort" : 65535, "CidrIp" : "0.0.0.0/0" }
+                ],
+                "SecurityGroupIngress" : [ 
+                    { "IpProtocol" : "tcp", "FromPort" : 22, "ToPort" : 22, "CidrIp" : "0.0.0.0/0" },
+                    { "IpProtocol" : "tcp", "FromPort" : 7180, "ToPort" : 7189, "CidrIp" : "0.0.0.0/0" }
+                ],
+                "Tags" : [
+                    { "Key" : "Name", "Value" : "SecurityGroup" },
+                    { "Key" : "owner", "Value" : { "Ref": "Username" } }
+                ]
+            }
+        }
+    },
+    "Outputs" : {
+        "Subnet" : {
+            "Description": "The Public Subnet ID",  
+            "Value" : { "Ref": "Subnet" }
+        },
+        "SecurityGroup" : {
+            "Description": "The Public Security Group ID",
+            "Value" : { "Ref": "SecurityGroup" }
+        }
+    }
+}
