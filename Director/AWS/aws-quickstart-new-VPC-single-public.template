@@ -81,10 +81,43 @@
                 ],
                 "SecurityGroupIngress" : [ 
                     { "IpProtocol" : "tcp", "FromPort" : 22, "ToPort" : 22, "CidrIp" : "0.0.0.0/0" },
-                    { "IpProtocol" : "tcp", "FromPort" : 7180, "ToPort" : 7189, "CidrIp" : "0.0.0.0/0" }
+                    { "IpProtocol" : "tcp", "FromPort" : 7180, "ToPort" : 7189, "CidrIp" : "0.0.0.0/0" },
+                    { "IpProtocol" : "tcp", "FromPort" : 8157, "ToPort" : 8157, "CidrIp" : "0.0.0.0/0" },
+                    { "IpProtocol" : "tcp", "FromPort" : 0, "ToPort" : 65535, "CidrIp" : "0.0.0.0/0" },
+                    { "IpProtocol" : "udp", "FromPort" : 0, "ToPort" : 65535, "CidrIp" : "0.0.0.0/0" }
                 ],
                 "Tags" : [
                     { "Key" : "Name", "Value" : "SecurityGroup" },
+                    { "Key" : "owner", "Value" : { "Ref": "Username" } }
+                ]
+            }
+        },
+        "MasterPlacementGroup" : {
+            "Type" : "AWS::EC2::PlacementGroup",
+            "Properties" : {
+                "Strategy" : "cluster",
+                "Tags" : [
+                    { "Key" : "Name", "Value" : "Master-PG" },
+                    { "Key" : "owner", "Value" : { "Ref": "Username" } }
+                ]
+            }
+        },
+        "WorkerPlacementGroup" : {
+            "Type" : "AWS::EC2::PlacementGroup",
+            "Properties" : {
+                "Strategy" : "cluster",
+                "Tags" : [
+                    { "Key" : "Name", "Value" : "Worker-PG" },
+                    { "Key" : "owner", "Value" : { "Ref": "Username" } }
+                ]
+            }
+        },
+        "EdgePlacementGroup" : {
+            "Type" : "AWS::EC2::PlacementGroup",
+            "Properties" : {
+                "Strategy" : "cluster",
+                "Tags" : [
+                    { "Key" : "Name", "Value" : "Edge-PG" },
                     { "Key" : "owner", "Value" : { "Ref": "Username" } }
                 ]
             }
