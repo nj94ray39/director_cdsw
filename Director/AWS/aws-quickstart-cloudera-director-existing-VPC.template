@@ -43,9 +43,10 @@
                             "", [
                                 "#!/bin/bash \n",
                                 "yum install -y git screen \n",
-                                "git clone https://github.com/heibalvin/Cloudera /root/Cloudera \n",
-                                "chmod u+x /root/Cloudera/Director/director-centos-7-installation-script.sh \n",
-                                "./root/Cloudera/Director/director-centos-7-installation-script.sh \n"
+                                "git clone https://github.com/heibalvin/Cloudera /home/centos/Cloudera \n",
+                                "chown -R centos:centos /home/centos/Cloudera \n",
+                                "chmod u+x /home/centos/Cloudera/Director/director-centos-7-installation-script.sh \n",
+                                "./home/centos/Cloudera/Director/director-centos-7-installation-script.sh \n"
                             ]
                         ]
                     }

@@ -36,6 +36,14 @@
         }
     },
     "Outputs" : {
+        "Region" : {
+            "Description": "The AWS Region used for the subnet",
+            "Value" : "eu-west-1" }
+        },
+        "AMI" : {
+            "Description": "The CentOS Image AMI ID",
+            "Value" : "ami-4c457735" }
+        },
         "Subnet" : {
             "Description": "The Public Subnet ID",  
             "Value" : { "Fn::GetAtt": ["DirectorStack", "Outputs.Subnet"] }
