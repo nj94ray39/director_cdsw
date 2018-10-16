@@ -1,0 +1,111 @@
+{
+    "Parameters" : {
+        "Username" : {
+            "Type" : "String",
+            "Default": "For ex: heibalvin",
+            "Description" : "Username"
+        },
+        "KeyPair" : {
+            "Type" : "AWS::EC2::KeyPair::KeyName",
+            "Default": "For ex: tech-summit",
+            "Description": "The keypair used for Director deployment"
+        },
+        "Subnet" : {
+            "Type": "String",
+            "Description" : "The subnet used for Director deployment",
+            "Default" : "For ex: subnet-05c5e7372a587c484"
+        },
+        "SecurityGroup": {
+            "Type" : "String",
+            "Default": "For ex: sg-038785ea0b759e3a4",
+            "Description": "The security group used for Director deployment"
+        }
+    },
+    "Resources": {
+        "MasterPlacementGroup" : {
+            "Type" : "AWS::EC2::PlacementGroup",
+            "Properties" : {
+                "Strategy" : "cluster",
+                "Tags" : [
+                    { "Key" : "Name", "Value" : "Master-PG" },
+                    { "Key" : "owner", "Value" : { "Ref": "Username" } }
+                ]
+            }
+        },
+        "WorkerPlacementGroup" : {
+            "Type" : "AWS::EC2::PlacementGroup",
+            "Properties" : {
+                "Strategy" : "cluster",
+                "Tags" : [
+                    { "Key" : "Name", "Value" : "Worker-PG" },
+                    { "Key" : "owner", "Value" : { "Ref": "Username" } }
+                ]
+            }
+        },
+        "EdgePlacementGroup" : {
+            "Type" : "AWS::EC2::PlacementGroup",
+            "Properties" : {
+                "Strategy" : "cluster",
+                "Tags" : [
+                    { "Key" : "Name", "Value" : "Edge-PG" },
+                    { "Key" : "owner", "Value" : { "Ref": "Username" } }
+                ]
+            }
+        },
+        "Director": {
+            "Type" : "AWS::EC2::Instance",
+            "Properties" : {
+                "ImageId": "ami-4c457735",
+                "InstanceType": "t2.medium",
+                "KeyName": { "Ref": "KeyPair" },
+                "NetworkInterfaces": [{
+                    "AssociatePublicIpAddress" : "True",
+                    "DeleteOnTermination" : "True",
+                    "DeviceIndex" : "0",
+                    "GroupSet" : [ { "Ref" : "SecurityGroup" } ],
+                    "SubnetId" : { "Ref" : "Subnet" }
+                }],
+                "Tags": [
+                    { "Key" : "Name", "Value" : { "Fn::Join" : [ "-", [ { "Ref": "Username" }, "Director" ] ] }},
+                    { "Key" : "owner", "Value" : { "Ref": "Username" } }
+                ],
+                "UserData" : { 
+                    "Fn::Base64" : { 
+                        "Fn::Join" : [ 
+                            "", [
+                                "#!/bin/bash \n",
+                                "yum install -y git screen \n",
+                                "git clone https://github.com/heibalvin/Cloudera /home/centos/Cloudera \n",
+                                "chown -R centos:centos /home/centos/Cloudera \n",
+                                "chmod u+x /home/centos/Cloudera/Director/director-centos-7-installation-script.sh \n",
+                                "./home/centos/Cloudera/Director/director-centos-7-installation-script.sh \n"
+                            ]
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "Outputs" : {
+        "Region" : {
+            "Description": "The AWS Region used for the subnet",
+            "Value" : "eu-west-1"
+        },
+        "AMI" : {
+            "Description": "The CentOS Image AMI ID",
+            "Value" : "ami-4c457735"
+        },
+        "Subnet" : {
+            "Description": "The Public Subnet ID",  
+            "Value" : { "Ref": "Subnet" }
+        },
+        "SecurityGroup" : {
+            "Description": "The Public Security Group ID",
+            "Value" : { "Ref": "SecurityGroup" }
+        },
+        "Director" : {
+            "Description": "The URL to connect to Cloudera Director",
+            "Value" : { "Fn::GetAtt": ["Director", "PublicDnsName"] }
+        }
+    }
+}
